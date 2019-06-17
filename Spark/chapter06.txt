@@ -1,0 +1,510 @@
+[training@localhost ~]$ sudo jps
+18846 NodeManager
+1628 WrapperSimpleApp
+6688 SparkSubmit
+19036 ResourceManager
+2225 NameNode
+2142 DataNode
+7643 Jps
+--有出現Resource Manager但沒有spark-master/spark-worker,所以spark-submit只能選擇local/yarn-client/yarn-cluster方式執行
+
+[training@localhost ~]$ sudo jps
+18846 NodeManager
+5797 Worker
+1628 WrapperSimpleApp
+6688 SparkSubmit
+5671 Master
+19036 ResourceManager
+2225 NameNode
+2142 DataNode
+7643 Jps
+--有出現Resource Manager與spark-master/spark-worker,所以spark-submit能選擇spark standalone/local/yarn-client/yarn-cluster方式執行
+
+[training@localhost ~]$ spark-submit --help
+Usage: spark-submit [options] <app jar | python file> [app arguments]
+Usage: spark-submit --kill [submission ID] --master [spark://...]
+Usage: spark-submit --status [submission ID] --master [spark://...]
+
+Options:
+  --master MASTER_URL         spark://host:port, mesos://host:port, yarn, or local.
+  --deploy-mode DEPLOY_MODE   Whether to launch the driver program locally ("client") or
+                              on one of the worker machines inside the cluster ("cluster")
+                              (Default: client).
+  --class CLASS_NAME          Your application's main class (for Java / Scala apps).
+  --name NAME                 A name of your application.
+  --jars JARS                 Comma-separated list of local jars to include on the driver
+                              and executor classpaths.
+  --packages                  Comma-separated list of maven coordinates of jars to include
+                              on the driver and executor classpaths. Will search the local
+                              maven repo, then maven central and any additional remote
+                              repositories given by --repositories. The format for the
+                              coordinates should be groupId:artifactId:version.
+  --repositories              Comma-separated list of additional remote repositories to
+                              search for the maven coordinates given with --packages.
+  --py-files PY_FILES         Comma-separated list of .zip, .egg, or .py files to place
+                              on the PYTHONPATH for Python apps.
+  --files FILES               Comma-separated list of files to be placed in the working
+                              directory of each executor.
+
+  --conf PROP=VALUE           Arbitrary Spark configuration property.
+  --properties-file FILE      Path to a file from which to load extra properties. If not
+                              specified, this will look for conf/spark-defaults.conf.
+
+  --driver-memory MEM         Memory for driver (e.g. 1000M, 2G) (Default: 512M).
+  --driver-java-options       Extra Java options to pass to the driver.
+  --driver-library-path       Extra library path entries to pass to the driver.
+  --driver-class-path         Extra class path entries to pass to the driver. Note that
+                              jars added with --jars are automatically included in the
+                              classpath.
+
+  --executor-memory MEM       Memory per executor (e.g. 1000M, 2G) (Default: 1G).
+
+  --proxy-user NAME           User to impersonate when submitting the application.
+
+  --help, -h                  Show this help message and exit
+  --verbose, -v               Print additional debug output
+  --version,                  Print the version of current Spark
+
+ Spark standalone with cluster deploy mode only:
+  --driver-cores NUM          Cores for driver (Default: 1).
+  --supervise                 If given, restarts the driver on failure.
+  --kill SUBMISSION_ID        If given, kills the driver specified.
+  --status SUBMISSION_ID      If given, requests the status of the driver specified.
+
+ Spark standalone and Mesos only:
+  --total-executor-cores NUM  Total cores for all executors.
+
+ YARN-only:
+  --driver-cores NUM          Number of cores used by the driver, only in cluster mode
+                              (Default: 1).
+  --executor-cores NUM        Number of cores per executor (Default: 1).
+  --queue QUEUE_NAME          The YARN queue to submit to (Default: "default").
+  --num-executors NUM         Number of executors to launch (Default: 2).
+  --archives ARCHIVES         Comma separated list of archives to be extracted into the
+                              working directory of each executor.
+
+\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
+Master URL	        Meaning
+local	            Run Spark locally with one worker thread (i.e. no parallelism at all).
+local[K]	        Run Spark locally with K worker threads (ideally, set this to the number of cores on your machine).
+local[*]	        Run Spark locally with as many worker threads as logical cores on your machine.
+spark://HOST:PORT	Connect to the given Spark standalone cluster master. The port must be whichever one your master is configured to use, which is 7077 by default.
+mesos://HOST:PORT	Connect to the given Mesos cluster. The port must be whichever one your is configured to use, which is 5050 by default. Or, for a Mesos cluster using ZooKeeper, use mesos://zk://.... To submit with --deploy-mode cluster, the HOST:PORT should be configured to connect to the MesosClusterDispatcher.
+yarn	            Connect to a YARN cluster in client or cluster mode depending on the value of --deploy-mode. The cluster location will be found based on the HADOOP_CONF_DIR or YARN_CONF_DIR variable.
+yarn-client	        Equivalent to yarn with --deploy-mode client, which is preferred to `yarn-client`
+yarn-cluster	    Equivalent to yarn with --deploy-mode cluster, which is preferred to `yarn-cluster`
+\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\							  
+
+--Spark Standalone
+[training@localhost ~]$ cat wordcount.py
+import sys
+from pyspark import SparkContext
+
+if __name__ == "__main__":
+    if len(sys.argv) < 2:
+        print >> sys.stderr, "Usage: WordCount <file>"
+        exit(-1)
+
+    sc = SparkContext()
+
+    counts = sc.textFile(sys.argv[1]) \
+     .flatMap(lambda line: line.split()) \
+     .map(lambda word: (word,1)) \
+     .reduceByKey(lambda v1,v2: v1+v2)
+
+    for pair in counts.take(5): print pair
+
+    sc.stop()
+
+--一個spark cluster只能有一個spark-master服務
+--每個worker Node都要執行spark-worker服務
+[training@localhost ~]$ sudo service spark-master start
+Starting Spark master (spark-master):                      [  OK  ]
+[training@localhost ~]$ sudo service spark-worker start
+Starting Spark worker (spark-worker):                      [  OK  ]
+[training@localhost ~]$ sudo service spark-master status
+Spark master is running                                    [  OK  ]
+[training@localhost ~]$ sudo service spark-worker start
+Starting Spark worker (spark-worker):                      [  OK  ]
+Spark worker is running                                    [  OK  ]
+
+                                              --spark standalone     local file   HDFS file
+[training@localhost ~]$ spark-submit --master spark://localhost:7077 wordcount.py purplecow.txt
+SLF4J: Class path contains multiple SLF4J bindings.
+SLF4J: Found binding in [jar:file:/usr/lib/zookeeper/lib/slf4j-log4j12-1.7.5.jar!/org/slf4j/impl/StaticLoggerBinder.class]
+SLF4J: Found binding in [jar:file:/usr/lib/flume-ng/lib/slf4j-log4j12-1.7.5.jar!/org/slf4j/impl/StaticLoggerBinder.class]
+SLF4J: See http://www.slf4j.org/codes.html#multiple_bindings for an explanation.
+SLF4J: Actual binding is of type [org.slf4j.impl.Log4jLoggerFactory]
+16/07/14 23:06:02 INFO SparkContext: Running Spark version 1.3.0
+16/07/14 23:06:02 WARN NativeCodeLoader: Unable to load native-hadoop library for your platform... using builtin-java classes where applicable
+16/07/14 23:06:02 INFO SecurityManager: Changing view acls to: training
+16/07/14 23:06:02 INFO SecurityManager: Changing modify acls to: training
+16/07/14 23:06:02 INFO SecurityManager: SecurityManager: authentication disabled; ui acls disabled; users with view permissions: Set(training); users with modify permissions: Set(training)
+16/07/14 23:06:03 INFO Slf4jLogger: Slf4jLogger started
+16/07/14 23:06:03 INFO Remoting: Starting remoting
+16/07/14 23:06:03 INFO Remoting: Remoting started; listening on addresses :[akka.tcp://sparkDriver@localhost:51102]
+16/07/14 23:06:03 INFO Remoting: Remoting now listens on addresses: [akka.tcp://sparkDriver@localhost:51102]
+16/07/14 23:06:03 INFO Utils: Successfully started service 'sparkDriver' on port 51102.
+16/07/14 23:06:03 INFO SparkEnv: Registering MapOutputTracker
+16/07/14 23:06:03 INFO SparkEnv: Registering BlockManagerMaster
+16/07/14 23:06:03 INFO DiskBlockManager: Created local directory at /tmp/spark-93c90758-8027-48df-94f8-fdfa5e898cf7/blockmgr-74db2209-fc01-4491-a013-27026cfdd994
+16/07/14 23:06:03 INFO MemoryStore: MemoryStore started with capacity 265.4 MB
+16/07/14 23:06:03 INFO HttpFileServer: HTTP File server directory is /tmp/spark-c570a7d1-664b-4f2f-af7f-f881f24b1c9f/httpd-6e79cb30-3daa-4a7a-95d5-8d42ea3d8a7e
+16/07/14 23:06:03 INFO HttpServer: Starting HTTP Server
+16/07/14 23:06:03 INFO Server: jetty-8.y.z-SNAPSHOT
+16/07/14 23:06:03 INFO AbstractConnector: Started SocketConnector@0.0.0.0:47227
+16/07/14 23:06:03 INFO Utils: Successfully started service 'HTTP file server' on port 47227.
+16/07/14 23:06:03 INFO SparkEnv: Registering OutputCommitCoordinator
+16/07/14 23:06:03 INFO Server: jetty-8.y.z-SNAPSHOT
+16/07/14 23:06:03 INFO AbstractConnector: Started SelectChannelConnector@0.0.0.0:4040
+16/07/14 23:06:03 INFO Utils: Successfully started service 'SparkUI' on port 4040.
+16/07/14 23:06:03 INFO SparkUI: Started SparkUI at http://localhost:4040
+16/07/14 23:06:03 INFO Utils: Copying /home/training/wordcount.py to /tmp/spark-85d04b5c-e221-4c82-9884-bae32f422c3a/userFiles-fdb8e890-1eed-4d17-9055-3008c4482bb4/wordcount.py
+16/07/14 23:06:03 INFO SparkContext: Added file file:/home/training/wordcount.py at http://localhost:47227/files/wordcount.py with timestamp 1468562763826
+16/07/14 23:06:03 INFO AppClient$ClientActor: Connecting to master akka.tcp://sparkMaster@localhost:7077/user/Master...
+16/07/14 23:06:04 INFO SparkDeploySchedulerBackend: Connected to Spark cluster with app ID app-20160714230604-0000
+16/07/14 23:06:04 INFO AppClient$ClientActor: Executor added: app-20160714230604-0000/0 on worker-20160714230510-localhost-7078 (localhost:7078) with 4 cores
+16/07/14 23:06:04 INFO SparkDeploySchedulerBackend: Granted executor ID app-20160714230604-0000/0 on hostPort localhost:7078 with 4 cores, 400.0 MB RAM
+16/07/14 23:06:04 INFO AppClient$ClientActor: Executor updated: app-20160714230604-0000/0 is now RUNNING
+16/07/14 23:06:04 INFO AppClient$ClientActor: Executor updated: app-20160714230604-0000/0 is now LOADING
+16/07/14 23:06:04 INFO NettyBlockTransferService: Server created on 33602
+16/07/14 23:06:04 INFO BlockManagerMaster: Trying to register BlockManager
+16/07/14 23:06:04 INFO BlockManagerMasterActor: Registering block manager localhost:33602 with 265.4 MB RAM, BlockManagerId(<driver>, localhost, 33602)
+16/07/14 23:06:04 INFO BlockManagerMaster: Registered BlockManager
+16/07/14 23:06:04 WARN DomainSocketFactory: The short-circuit local reads feature cannot be used because libhadoop cannot be loaded.
+16/07/14 23:06:04 INFO EventLoggingListener: Logging events to hdfs:///user/spark/applicationHistory/app-20160714230604-0000
+16/07/14 23:06:04 INFO SparkDeploySchedulerBackend: SchedulerBackend is ready for scheduling beginning after reached minRegisteredResourcesRatio: 0.0
+16/07/14 23:06:05 INFO MemoryStore: ensureFreeSpace(280171) called with curMem=0, maxMem=278302556
+16/07/14 23:06:05 INFO MemoryStore: Block broadcast_0 stored as values in memory (estimated size 273.6 KB, free 265.1 MB)
+16/07/14 23:06:05 INFO MemoryStore: ensureFreeSpace(21184) called with curMem=280171, maxMem=278302556
+16/07/14 23:06:05 INFO MemoryStore: Block broadcast_0_piece0 stored as bytes in memory (estimated size 20.7 KB, free 265.1 MB)
+16/07/14 23:06:05 INFO BlockManagerInfo: Added broadcast_0_piece0 in memory on localhost:33602 (size: 20.7 KB, free: 265.4 MB)
+16/07/14 23:06:05 INFO BlockManagerMaster: Updated info of block broadcast_0_piece0
+16/07/14 23:06:05 INFO SparkContext: Created broadcast 0 from textFile at NativeMethodAccessorImpl.java:-2
+16/07/14 23:06:05 INFO FileInputFormat: Total input paths to process : 1
+16/07/14 23:06:05 INFO SparkContext: Starting job: runJob at PythonRDD.scala:356
+16/07/14 23:06:05 INFO DAGScheduler: Registering RDD 4 (reduceByKey at /home/training/wordcount.py:14)
+16/07/14 23:06:05 INFO DAGScheduler: Got job 0 (runJob at PythonRDD.scala:356) with 1 output partitions (allowLocal=true)
+16/07/14 23:06:05 INFO DAGScheduler: Final stage: Stage 1(runJob at PythonRDD.scala:356)
+16/07/14 23:06:05 INFO DAGScheduler: Parents of final stage: List(Stage 0)
+16/07/14 23:06:05 INFO DAGScheduler: Missing parents: List(Stage 0)
+16/07/14 23:06:05 INFO DAGScheduler: Submitting Stage 0 (PairwiseRDD[4] at reduceByKey at /home/training/wordcount.py:14), which has no missing parents
+16/07/14 23:06:05 INFO MemoryStore: ensureFreeSpace(8032) called with curMem=301355, maxMem=278302556
+16/07/14 23:06:05 INFO MemoryStore: Block broadcast_1 stored as values in memory (estimated size 7.8 KB, free 265.1 MB)
+16/07/14 23:06:05 INFO MemoryStore: ensureFreeSpace(5166) called with curMem=309387, maxMem=278302556
+16/07/14 23:06:05 INFO MemoryStore: Block broadcast_1_piece0 stored as bytes in memory (estimated size 5.0 KB, free 265.1 MB)
+16/07/14 23:06:05 INFO BlockManagerInfo: Added broadcast_1_piece0 in memory on localhost:33602 (size: 5.0 KB, free: 265.4 MB)
+16/07/14 23:06:05 INFO BlockManagerMaster: Updated info of block broadcast_1_piece0
+16/07/14 23:06:05 INFO SparkContext: Created broadcast 1 from broadcast at DAGScheduler.scala:839
+16/07/14 23:06:05 INFO DAGScheduler: Submitting 2 missing tasks from Stage 0 (PairwiseRDD[4] at reduceByKey at /home/training/wordcount.py:14)
+16/07/14 23:06:05 INFO TaskSchedulerImpl: Adding task set 0.0 with 2 tasks
+16/07/14 23:06:08 INFO SparkDeploySchedulerBackend: Registered executor: Actor[akka.tcp://sparkExecutor@localhost:55740/user/Executor#-1804810336] with ID 0
+16/07/14 23:06:08 INFO TaskSetManager: Starting task 0.0 in stage 0.0 (TID 0, localhost, PROCESS_LOCAL, 1353 bytes)
+16/07/14 23:06:08 INFO TaskSetManager: Starting task 1.0 in stage 0.0 (TID 1, localhost, PROCESS_LOCAL, 1353 bytes)
+16/07/14 23:06:08 INFO BlockManagerMasterActor: Registering block manager localhost:45555 with 207.4 MB RAM, BlockManagerId(0, localhost, 45555)
+16/07/14 23:06:10 INFO BlockManagerInfo: Added broadcast_1_piece0 in memory on localhost:45555 (size: 5.0 KB, free: 207.4 MB)
+16/07/14 23:06:11 INFO BlockManagerInfo: Added broadcast_0_piece0 in memory on localhost:45555 (size: 20.7 KB, free: 207.3 MB)
+16/07/14 23:06:13 INFO TaskSetManager: Finished task 1.0 in stage 0.0 (TID 1) in 4389 ms on localhost (1/2)
+16/07/14 23:06:13 INFO TaskSetManager: Finished task 0.0 in stage 0.0 (TID 0) in 4414 ms on localhost (2/2)
+16/07/14 23:06:13 INFO TaskSchedulerImpl: Removed TaskSet 0.0, whose tasks have all completed, from pool
+16/07/14 23:06:13 INFO DAGScheduler: Stage 0 (reduceByKey at /home/training/wordcount.py:14) finished in 7.269 s
+16/07/14 23:06:13 INFO DAGScheduler: looking for newly runnable stages
+16/07/14 23:06:13 INFO DAGScheduler: running: Set()
+16/07/14 23:06:13 INFO DAGScheduler: waiting: Set(Stage 1)
+16/07/14 23:06:13 INFO DAGScheduler: failed: Set()
+16/07/14 23:06:13 INFO DAGScheduler: Missing parents for Stage 1: List()
+16/07/14 23:06:13 INFO DAGScheduler: Submitting Stage 1 (PythonRDD[8] at RDD at PythonRDD.scala:42), which is now runnable
+16/07/14 23:06:13 INFO MemoryStore: ensureFreeSpace(5288) called with curMem=314553, maxMem=278302556
+16/07/14 23:06:13 INFO MemoryStore: Block broadcast_2 stored as values in memory (estimated size 5.2 KB, free 265.1 MB)
+16/07/14 23:06:13 INFO MemoryStore: ensureFreeSpace(3330) called with curMem=319841, maxMem=278302556
+16/07/14 23:06:13 INFO MemoryStore: Block broadcast_2_piece0 stored as bytes in memory (estimated size 3.3 KB, free 265.1 MB)
+16/07/14 23:06:13 INFO BlockManagerInfo: Added broadcast_2_piece0 in memory on localhost:33602 (size: 3.3 KB, free: 265.4 MB)
+16/07/14 23:06:13 INFO BlockManagerMaster: Updated info of block broadcast_2_piece0
+16/07/14 23:06:13 INFO SparkContext: Created broadcast 2 from broadcast at DAGScheduler.scala:839
+16/07/14 23:06:13 INFO DAGScheduler: Submitting 1 missing tasks from Stage 1 (PythonRDD[8] at RDD at PythonRDD.scala:42)
+16/07/14 23:06:13 INFO TaskSchedulerImpl: Adding task set 1.0 with 1 tasks
+16/07/14 23:06:13 INFO TaskSetManager: Starting task 0.0 in stage 1.0 (TID 2, localhost, PROCESS_LOCAL, 1107 bytes)
+16/07/14 23:06:13 INFO BlockManagerInfo: Added broadcast_2_piece0 in memory on localhost:45555 (size: 3.3 KB, free: 207.3 MB)
+16/07/14 23:06:13 INFO MapOutputTrackerMasterActor: Asked to send map output locations for shuffle 0 to sparkExecutor@localhost:55740
+16/07/14 23:06:13 INFO MapOutputTrackerMaster: Size of output statuses for shuffle 0 is 150 bytes
+16/07/14 23:06:13 INFO TaskSetManager: Finished task 0.0 in stage 1.0 (TID 2) in 140 ms on localhost (1/1)
+16/07/14 23:06:13 INFO DAGScheduler: Stage 1 (runJob at PythonRDD.scala:356) finished in 0.140 s
+16/07/14 23:06:13 INFO TaskSchedulerImpl: Removed TaskSet 1.0, whose tasks have all completed, from pool
+16/07/14 23:06:13 INFO DAGScheduler: Job 0 finished: runJob at PythonRDD.scala:356, took 7.590607 s
+(u'a', 1)
+(u'rather', 1)
+(u'purple', 1)
+(u'But', 1)
+(u'I', 2)
+16/07/14 23:06:13 INFO ContextHandler: stopped o.s.j.s.ServletContextHandler{/metrics/json,null}
+16/07/14 23:06:13 INFO ContextHandler: stopped o.s.j.s.ServletContextHandler{/stages/stage/kill,null}
+16/07/14 23:06:13 INFO ContextHandler: stopped o.s.j.s.ServletContextHandler{/,null}
+16/07/14 23:06:13 INFO ContextHandler: stopped o.s.j.s.ServletContextHandler{/static,null}
+16/07/14 23:06:13 INFO ContextHandler: stopped o.s.j.s.ServletContextHandler{/executors/threadDump/json,null}
+16/07/14 23:06:13 INFO ContextHandler: stopped o.s.j.s.ServletContextHandler{/executors/threadDump,null}
+16/07/14 23:06:13 INFO ContextHandler: stopped o.s.j.s.ServletContextHandler{/executors/json,null}
+16/07/14 23:06:13 INFO ContextHandler: stopped o.s.j.s.ServletContextHandler{/executors,null}
+16/07/14 23:06:13 INFO ContextHandler: stopped o.s.j.s.ServletContextHandler{/environment/json,null}
+16/07/14 23:06:13 INFO ContextHandler: stopped o.s.j.s.ServletContextHandler{/environment,null}
+16/07/14 23:06:13 INFO ContextHandler: stopped o.s.j.s.ServletContextHandler{/storage/rdd/json,null}
+16/07/14 23:06:13 INFO ContextHandler: stopped o.s.j.s.ServletContextHandler{/storage/rdd,null}
+16/07/14 23:06:13 INFO ContextHandler: stopped o.s.j.s.ServletContextHandler{/storage/json,null}
+16/07/14 23:06:13 INFO ContextHandler: stopped o.s.j.s.ServletContextHandler{/storage,null}
+16/07/14 23:06:13 INFO ContextHandler: stopped o.s.j.s.ServletContextHandler{/stages/pool/json,null}
+16/07/14 23:06:13 INFO ContextHandler: stopped o.s.j.s.ServletContextHandler{/stages/pool,null}
+16/07/14 23:06:13 INFO ContextHandler: stopped o.s.j.s.ServletContextHandler{/stages/stage/json,null}
+16/07/14 23:06:13 INFO ContextHandler: stopped o.s.j.s.ServletContextHandler{/stages/stage,null}
+16/07/14 23:06:13 INFO ContextHandler: stopped o.s.j.s.ServletContextHandler{/stages/json,null}
+16/07/14 23:06:13 INFO ContextHandler: stopped o.s.j.s.ServletContextHandler{/stages,null}
+16/07/14 23:06:13 INFO ContextHandler: stopped o.s.j.s.ServletContextHandler{/jobs/job/json,null}
+16/07/14 23:06:13 INFO ContextHandler: stopped o.s.j.s.ServletContextHandler{/jobs/job,null}
+16/07/14 23:06:13 INFO ContextHandler: stopped o.s.j.s.ServletContextHandler{/jobs/json,null}
+16/07/14 23:06:13 INFO ContextHandler: stopped o.s.j.s.ServletContextHandler{/jobs,null}
+16/07/14 23:06:13 INFO SparkUI: Stopped Spark web UI at http://localhost:4040
+16/07/14 23:06:13 INFO DAGScheduler: Stopping DAGScheduler
+16/07/14 23:06:13 INFO SparkDeploySchedulerBackend: Shutting down all executors
+16/07/14 23:06:13 INFO SparkDeploySchedulerBackend: Asking each executor to shut down
+16/07/14 23:06:13 INFO OutputCommitCoordinator$OutputCommitCoordinatorActor: OutputCommitCoordinator stopped!
+16/07/14 23:06:13 INFO MapOutputTrackerMasterActor: MapOutputTrackerActor stopped!
+16/07/14 23:06:13 INFO MemoryStore: MemoryStore cleared
+16/07/14 23:06:13 INFO BlockManager: BlockManager stopped
+16/07/14 23:06:13 INFO BlockManagerMaster: BlockManagerMaster stopped
+16/07/14 23:06:13 INFO RemoteActorRefProvider$RemotingTerminator: Shutting down remote daemon.
+16/07/14 23:06:13 INFO RemoteActorRefProvider$RemotingTerminator: Remote daemon shut down; proceeding with flushing remote transports.
+16/07/14 23:06:13 INFO Remoting: Remoting shut down
+16/07/14 23:06:13 INFO RemoteActorRefProvider$RemotingTerminator: Remoting shut down.
+16/07/14 23:06:13 INFO SparkContext: Successfully stopped SparkContext
+[training@localhost ~]$
+
+
+                 [  OK  ]
+
+
+HTTP://spark:18080 (請先開啟spark-history-server服務 $ sudo service spark-history-server start)
+
+
+pyspark -> http://spark:4040(執行pyspark時,請注意看console所顯示的訊息)
+15/10/20 11:56:26 INFO HttpServer: Starting HTTP Server
+15/10/20 11:56:26 INFO SparkUI: Started SparkUI at http://localhost:4040
+
+
+[training@localhost ~]$ ls /etc/hadoop/conf/
+core-site.xml  hadoop-metrics.properties  log4j.properties  README
+hadoop-env.sh  hdfs-site.xml              mapred-site.xml   yarn-site.xml
+[training@localhost ~]$ cat /etc/hadoop/conf/yarn-site.xml
+<?xml version="1.0"?>
+<!--
+  Licensed to the Apache Software Foundation (ASF) under one or more
+  contributor license agreements.  See the NOTICE file distributed with
+  this work for additional information regarding copyright ownership.
+  The ASF licenses this file to You under the Apache License, Version 2.0
+  (the "License"); you may not use this file except in compliance with
+  the License.  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+-->
+<?xml-stylesheet type="text/xsl" href="configuration.xsl"?>
+
+<configuration>
+  <property>
+    <name>yarn.nodemanager.aux-services</name>
+    <value>mapreduce_shuffle</value>
+  </property>
+
+  <property>
+    <name>yarn.nodemanager.aux-services.mapreduce_shuffle.class</name>
+    <value>org.apache.hadoop.mapred.ShuffleHandler</value>
+  </property>
+
+  <property>
+    <name>yarn.log-aggregation-enable</name>
+    <value>true</value>
+  </property>
+
+  <property>
+    <name>yarn.dispatcher.exit-on-error</name>
+    <value>true</value>
+  </property>
+
+  <property>
+    <description>List of directories to store localized files in.</description>
+    <name>yarn.nodemanager.local-dirs</name>
+    <value>/var/lib/hadoop-yarn/cache/${user.name}/nm-local-dir</value>
+  </property>
+
+  <property>
+    <description>Where to store container logs.</description>
+    <name>yarn.nodemanager.log-dirs</name>
+    <value>/var/log/hadoop-yarn/containers</value>
+  </property>
+
+  <property>
+    <description>Where to aggregate logs to.</description>
+    <name>yarn.nodemanager.remote-app-log-dir</name>
+    <value>/var/log/hadoop-yarn/apps</value>
+  </property>
+
+  <property>
+    <description>Classpath for typical applications.</description>
+     <name>yarn.application.classpath</name>
+     <value>
+        $HADOOP_CONF_DIR,
+        $HADOOP_COMMON_HOME/*,$HADOOP_COMMON_HOME/lib/*,
+        $HADOOP_HDFS_HOME/*,$HADOOP_HDFS_HOME/lib/*,
+        $HADOOP_MAPRED_HOME/*,$HADOOP_MAPRED_HOME/lib/*,
+        $HADOOP_YARN_HOME/*,$HADOOP_YARN_HOME/lib/*
+     </value>
+  </property>
+
+
+  <!-- TBD Settings for YARN for performance on training VM
+        These need testing and refinement! -->
+
+  <property>
+    <name>yarn.nodemanager.resource.memory-mb</name>
+    <value>2048</value>
+  </property>
+
+  <property>
+     <name>yarn.scheduler.minimum-allocation-mb</name>
+     <value>256</value>
+   </property>
+   <property>
+     <name>yarn.scheduler.maximum-allocation-mb</name>
+         <value>1024</value>
+   </property>
+
+<!--
+  <property>
+    <name>yarn.nodemanager.resource.cpu-vcores</name>
+    <value>2</value>
+  </property>
+  <property>
+    <name>yarn.scheduler.maximum-allocation-vcores </name>
+    <value>2</value>
+  </property>
+ -->
+
+</configuration>
+
+[training@localhost ~]$ cat /etc/hadoop/conf/mapred-site.xml
+<?xml version="1.0"?>
+<!--
+  Licensed to the Apache Software Foundation (ASF) under one or more
+  contributor license agreements.  See the NOTICE file distributed with
+  this work for additional information regarding copyright ownership.
+  The ASF licenses this file to You under the Apache License, Version 2.0
+  (the "License"); you may not use this file except in compliance with
+  the License.  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+-->
+<?xml-stylesheet type="text/xsl" href="configuration.xsl"?>
+
+<configuration>
+  <property>
+    <name>mapred.job.tracker</name>
+    <value>localhost:8021</value>
+  </property>
+
+  <property>
+    <name>mapreduce.framework.name</name>
+    <value>yarn</value>
+  </property>
+
+  <property>
+    <name>mapreduce.jobhistory.address</name>
+    <value>localhost:10020</value>
+  </property>
+  <property>
+    <name>mapreduce.jobhistory.webapp.address</name>
+    <value>localhost:19888</value>
+  </property>
+
+  <property>
+    <description>To set the value of tmp directory for map and reduce tasks.</description>
+    <name>mapreduce.task.tmp.dir</name>
+    <value>/var/lib/hadoop-mapreduce/cache/${user.name}/tasks</value>
+  </property>
+
+  <!-- Cloudera training changes start here -->
+  <property>
+    <name>yarn.app.mapreduce.am.resource.mb</name>
+    <value>512</value>
+  </property>
+  <property>
+    <name>mapreduce.map.memory.mb</name>
+    <value>256</value>
+  </property>
+  <property>
+    <name>mapreduce.map.java.opts</name>
+    <value>-Xmx192m</value>
+  </property>
+  <property>
+    <name>mapreduce.reduce.memory.mb</name>
+    <value>512</value>
+  </property>
+  <property>
+    <name>mapreduce.reduce.java.opts</name>
+    <value>-Xmx384m</value>
+  </property>
+  <!-- Cloudera training changes end here -->
+
+</configuration>
+
+[training@localhost ~]$ echo $SPARK_HOME
+
+[training@localhost ~]$ cd /etc/spark/conf/
+[training@localhost conf]$ ls
+fairscheduler.xml.template   spark-defaults.conf
+log4j.properties             spark-defaults.conf.template
+log4j.properties.template    spark-env.sh
+metrics.properties.template  spark-env.sh.template
+slaves.template
+[training@localhost conf]$ cat spark-defaults.conf
+spark.eventLog.enabled true
+spark.eventLog.dir hdfs:///user/spark/applicationHistory
+spark.executor.memory 400M
+
+[training@localhost conf]$ cat log4j.properties
+# Set everything to be logged to the console
+log4j.rootCategory=INFO, console
+log4j.appender.console=org.apache.log4j.ConsoleAppender
+log4j.appender.console.target=System.err
+log4j.appender.console.layout=org.apache.log4j.PatternLayout
+log4j.appender.console.layout.ConversionPattern=%d{yy/MM/dd HH:mm:ss} %p %c{1}: %m%n
+
+# Settings to quiet third party logs that are too verbose
+log4j.logger.org.eclipse.jetty=WARN
+log4j.logger.org.eclipse.jetty.util.component.AbstractLifeCycle=ERROR
+log4j.logger.org.apache.spark.repl.SparkIMain$exprTyper=INFO
+log4j.logger.org.apache.spark.repl.SparkILoop$SparkILoopInterpreter=INFO
+
+[training@localhost conf]$ sudo vi log4j.properties
+[training@localhost conf]$ cat log4j.properties
+# Set everything to be logged to the console
+log4j.rootCategory=WARN, console   <--將INFO改為WARN,以減少訊息量
+log4j.appender.console=org.apache.log4j.ConsoleAppender
+log4j.appender.console.target=System.err
+log4j.appender.console.layout=org.apache.log4j.PatternLayout
+log4j.appender.console.layout.ConversionPattern=%d{yy/MM/dd HH:mm:ss} %p %c{1}: %m%n
+
+# Settings to quiet third party logs that are too verbose
+log4j.logger.org.eclipse.jetty=WARN
+log4j.logger.org.eclipse.jetty.util.component.AbstractLifeCycle=ERROR
+log4j.logger.org.apache.spark.repl.SparkIMain$exprTyper=INFO
+log4j.logger.org.apache.spark.repl.SparkILoop$SparkILoopInterpreter=INFO
+[training@localhost conf]$
+

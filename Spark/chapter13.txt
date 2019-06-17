@@ -1,0 +1,479 @@
+[training@localhost ~]$ hdfs dfs -cat /user/training/people.json
+{"name":"Alice", "pcode":"94304"}
+{"name":"Brayden", "age":30, "pcode":"94304"}
+{"name":"Carla", "age":19, "pcode":"10036"}
+{"name":"Diana", "age":46}
+{"name":"Etienne", "pcode":"94104"}
+
+[training@localhost ~]$ pyspark
+Welcome to
+      ____              __
+     / __/__  ___ _____/ /__
+    _\ \/ _ \/ _ `/ __/  '_/
+   /__ / .__/\_,_/_/ /_/\_\   version 1.3.0
+      /_/
+
+Using Python version 2.7.8 (default, Aug 27 2015 05:23:36)
+SparkContext available as sc, HiveContext available as sqlCtx.
+
+In [1]: from pyspark.sql import SQLContext
+
+In [2]: sqlContext = SQLContext(sc)
+
+In [3]: peopleDF = sqlContext.jsonFile("people.json")
+
+In [4]: peopleDF.
+peopleDF.agg                peopleDF.isLocal            peopleDF.schema
+peopleDF.cache              peopleDF.is_cached          peopleDF.select
+peopleDF.collect            peopleDF.join               peopleDF.selectExpr
+peopleDF.columns            peopleDF.limit              peopleDF.show
+peopleDF.count              peopleDF.map                peopleDF.sort
+peopleDF.distinct           peopleDF.mapPartitions      peopleDF.sql_ctx
+peopleDF.dtypes             peopleDF.orderBy            peopleDF.subtract
+peopleDF.explain            peopleDF.persist            peopleDF.take
+peopleDF.filter             peopleDF.printSchema        peopleDF.toJSON
+peopleDF.first              peopleDF.rdd                peopleDF.toPandas
+peopleDF.flatMap            peopleDF.registerAsTable    peopleDF.unionAll
+peopleDF.foreach            peopleDF.registerTempTable  peopleDF.unpersist
+peopleDF.foreachPartition   peopleDF.repartition        peopleDF.where
+peopleDF.groupBy            peopleDF.sample             peopleDF.withColumn
+peopleDF.head               peopleDF.save               peopleDF.withColumnRenamed
+peopleDF.insertInto         peopleDF.saveAsParquetFile
+peopleDF.intersect          peopleDF.saveAsTable
+
+In [4]: peopleDF.show()
+age  name    pcode
+null Alice   94304
+30   Brayden 94304
+19   Carla   10036
+46   Diana   null
+null Etienne 94104
+
+In [5]: accountsDF = sqlContext.load(source="jdbc",url="jdbc:mysql://localhost/loudacre?user=training&password=training",dbtable="accounts")
+
+In [6]: accountsDF.count()
+Out[6]: 129761L
+
+\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
+[training@localhost ~]$ mysql -utraining -ptraining
+Welcome to the MySQL monitor.  Commands end with ; or \g.
+Your MySQL connection id is 46
+Server version: 5.1.73 Source distribution
+mysql> use loudacre
+Reading table information for completion of table and column names
+You can turn off this feature to get a quicker startup with -A
+
+Database changed
+mysql> select count(*) from accounts;
++----------+
+| count(*) |
++----------+
+|   129761 |
++----------+
+1 row in set (0.00 sec)
+
+\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
+In [9]: peopleDF.schema
+Out[9]: StructType(List(StructField(age,LongType,true),StructField(name,StringType,true),StructField(pcode,StringType,true)))
+
+In [10]: peopleDF.printSchema()
+root
+ |-- age: long (nullable = true)
+ |-- name: string (nullable = true)
+ |-- pcode: string (nullable = true)
+
+In [11]: peopleDF.dtypes
+Out[11]: [('age', 'bigint'), ('name', 'string'), ('pcode', 'string')]
+
+In [12]: for item in peopleDF.dtypes:
+   ....:     print item
+   ....:
+('age', 'bigint')
+('name', 'string')
+('pcode', 'string')
+
+In [13]: peopleDF.select("name").show()
+name
+Alice
+Brayden
+Carla
+Diana
+Etienne
+
+In [19]: peopleDF.collect()
+Out[19]:
+[Row(age=None, name=u'Alice', pcode=u'94304'),
+ Row(age=30, name=u'Brayden', pcode=u'94304'),
+ Row(age=19, name=u'Carla', pcode=u'10036'),
+ Row(age=46, name=u'Diana', pcode=None),
+ Row(age=None, name=u'Etienne', pcode=u'94104')]
+
+In [20]: peopleDF.take(2)
+Out[20]:
+[Row(age=None, name=u'Alice', pcode=u'94304'),
+ Row(age=30, name=u'Brayden', pcode=u'94304')]
+
+In [21]: peopleDF.where("age>21")
+Out[21]: DataFrame[age: bigint, name: string, pcode: string]
+
+In [22]: peopleDF.where("age>21").show()
+age name    pcode
+30  Brayden 94304
+46  Diana   null
+
+In [23]: ageDF = peopleDF.select(peopleDF.age)
+
+In [24]: ageDF.show()
+age
+null
+30
+19
+46
+null
+
+In [25]: peopleDF.select(peopleDF.name,peopleDF.age+10).show()
+name    (age + 10)
+Alice   null
+Brayden 40
+Carla   29
+Diana   56
+Etienne null
+
+In [27]: peopleDF.sort(peopleDF.age.desc()).show()
+age  name    pcode
+46   Diana   null
+30   Brayden 94304
+19   Carla   10036
+null Alice   94304
+null Etienne 94104
+
+In [31]: peopleDF.registerTempTable("people")
+
+In [32]: sqlContext.sql("select * from people where name like 'A%'")
+Out[32]: DataFrame[age: bigint, name: string, pcode: string]
+
+In [33]: sqlContext.sql("select * from people where name like 'A%'").show()
+age  name  pcode
+null Alice 94304
+
+In [35]: peopleRDD = peopleDF.rdd
+
+In [36]: peopleRDD
+Out[36]: PythonRDD[78] at RDD at PythonRDD.scala:42
+
+In [37]: peopleRDD.collect()
+Out[37]:
+[Row(age=None, name=u'Alice', pcode=u'94304'),
+ Row(age=30, name=u'Brayden', pcode=u'94304'),
+ Row(age=19, name=u'Carla', pcode=u'10036'),
+ Row(age=46, name=u'Diana', pcode=None),
+ Row(age=None, name=u'Etienne', pcode=u'94104')]
+
+In [42]: peopleByPCode = peopleRDD.map(lambda row:(row.pcode,row.name)).groupByKey()
+
+\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
+[training@localhost ~]$ hdfs dfs -put emp.json
+
+[training@localhost ~]$ hdfs dfs -cat /user/training/emp.json
+{"empid":1, "empname":"Siya", "dept":"IT", "address":{"city":"Pune","state":"Maharashtra"}, "salary":150000}
+{"empid":2, "empname":"Swayam", "dept":"HR", "address":{"city":"Bangalore", "state":"Karnataka"}, "salary":130000}
+{"empid":3, "empname":"Jeet", "dept":"IT", "address":{"city":"Mumbai","state":"Maharashtra"}, "salary":170000}
+{"empid":4, "empname":"Priya", "dept":"HR", "address":{"city":"Chennai", "state":"Tamilnadu"}, "salary":145000}
+
+[training@localhost ~]$ spark-shell
+Welcome to
+      ____              __
+     / __/__  ___ _____/ /__
+    _\ \/ _ \/ _ `/ __/  '_/
+   /___/ .__/\_,_/_/ /_/\_\   version 1.3.0
+      /_/
+
+Using Scala version 2.10.4 (Java HotSpot(TM) 64-Bit Server VM, Java 1.7.0_67)
+16/02/15 00:40:15 INFO SparkILoop: Created spark context..
+Spark context available as sc.
+16/02/15 00:40:16 INFO SparkILoop: Created sql context (with Hive support)..
+SQL context available as sqlContext.
+
+scala> val sqlCtx = new org.apache.spark.sql.SQLContext(sc)
+sqlCtx: org.apache.spark.sql.SQLContext = org.apache.spark.sql.SQLContext@505f6635
+
+scala> sqlCtx
+res0: org.apache.spark.sql.SQLContext = org.apache.spark.sql.SQLContext@505f6635
+
+scala> sqlCtx."«ö¤UTabÁä"
+asInstanceOf              baseRelationToDataFrame
+cacheTable                clearCache                createDataFrame
+createExternalTable       dropTempTable             emptyDataFrame
+experimental              getAllConfs               getConf
+implicits                 isCached                  isInstanceOf
+jdbc                      jsonFile                  jsonRDD
+load                      parquetFile               setConf
+sparkContext              sql                       table
+tableNames                tables                    toString
+udf                       uncacheTable
+
+scala> val empDF = sqlCtx.jsonFile("emp.json")
+
+scala> empDF.show
+address              dept empid empname salary
+[Pune,Maharashtra]   IT   1     Siya    150000
+[Bangalore,Karnat... HR   2     Swayam  130000
+[Mumbai,Maharashtra] IT   3     Jeet    170000
+[Chennai,Tamilnadu]  HR   4     Priya   145000
+
+scala> empDF.limit(3).show()
+address              dept empid empname salary
+[Pune,Maharashtra]   IT   1     Siya    150000
+[Bangalore,Karnat... HR   2     Swayam  130000
+[Mumbai,Maharashtra] IT   3     Jeet    170000
+
+scala> empDF.select("empid","salary")
+res9: org.apache.spark.sql.DataFrame = [empid: bigint, salary: bigint]
+
+scala> empDF.select("empid","salary").show()
+empid salary
+1     150000
+2     130000
+3     170000
+4     145000
+
+
+scala> empDF.explain
+== Physical Plan ==
+PhysicalRDD [address#0,dept#1,empid#2L,empname#3,salary#4L], MapPartitionsRDD[7] at map at JsonRDD.scala:41
+
+scala> empDF.select("empid","salary").explain
+== Physical Plan ==
+Project [empid#2L,salary#4L]
+ PhysicalRDD [address#0,dept#1,empid#2L,empname#3,salary#4L], MapPartitionsRDD[28] at map at JsonRDD.scala:41
+
+scala> empDF.sort(empDF("salary").desc)
+res23: org.apache.spark.sql.DataFrame = [address: struct<city:string,state:string>, dept: string, empid: bigint, empname: string, salary: bigint]
+
+scala> empDF.sort(empDF("salary").desc).show
+address              dept empid empname salary
+[Mumbai,Maharashtra] IT   3     Jeet    170000
+[Pune,Maharashtra]   IT   1     Siya    150000
+[Chennai,Tamilnadu]  HR   4     Priya   145000
+[Bangalore,Karnat... HR   2     Swayam  130000
+
+scala> empDF.sort(empDF("salary").desc).select("empid").show
+empid
+3
+1
+4
+2
+
+scala> empDF.take(5)
+Array[org.apache.spark.sql.Row] = Array([[Pune,Maharashtra],IT,1,Siya,150000], [[Bangalore,Karnataka],HR,2,Swayam,130000], [[Mumbai,Maharashtra],IT,3,Jeet,170000], [[Chennai,Tamilnadu],HR,4,Priya,145000])
+
+scala> empDF.printSchema
+root
+ |-- address: struct (nullable = true)
+ |    |-- city: string (nullable = true)
+ |    |-- state: string (nullable = true)
+ |-- dept: string (nullable = true)
+ |-- empid: long (nullable = true)
+ |-- empname: string (nullable = true)
+ |-- salary: long (nullable = true)
+
+
+ scala> empDF.schema
+res0: org.apache.spark.sql.types.StructType = StructType(StructField(address,StructType(StructField(city,StringType,true), StructField(state,StringType,true)),true), StructField(dept,StringType,true), StructField(empid,LongType,true), StructField(empname,StringType,true), StructField(salary,LongType,true))
+
+
+scala> empDF.columns
+res1: Array[String] = Array(address, dept, empid, empname, salary)
+
+scala> empDF.dtypes
+res2: Array[(String, String)] = Array((address,StructType(StructField(city,StringType,true), StructField(state,StringType,true))), (dept,StringType), (empid,LongType), (empname,StringType), (salary,LongType))
+
+scala> empDF.dtypes.foreach(println)
+(address,StructType(StructField(city,StringType,true), StructField(state,StringType,true)))
+(dept,StringType)
+(empid,LongType)
+(empname,StringType)
+(salary,LongType)
+
+scala> empDF.registerTempTable("emp")
+
+scala> sqlCtx.sql("select empid,dept,salary from emp where salary>15000 order by salary").show
+empid dept salary
+2     HR   130000
+4     HR   145000
+1     IT   150000
+3     IT   170000
+
+-------------------------------------------------------------------------------------------------------------------------------------------------
+[training@localhost ~]$ pyspark
+Python 2.7.8 (default, Sep 16 2015, 11:31:11)
+Welcome to
+      ____              __
+     / __/__  ___ _____/ /__
+    _\ \/ _ \/ _ `/ __/  '_/
+   /__ / .__/\_,_/_/ /_/\_\   version 1.3.0
+      /_/
+
+Using Python version 2.7.8 (default, Sep 16 2015 11:31:11)
+SparkContext available as sc, HiveContext available as sqlCtx.
+
+
+In [1]: from pyspark.sql import SQLContext
+
+
+In [2]: sqlContext = SQLContext(sc)
+
+In [3]: sqlContext.
+sqlContext.applySchema               sqlContext.parquetFile
+sqlContext.cacheTable                sqlContext.registerDataFrameAsTable
+sqlContext.clearCache                sqlContext.registerFunction
+sqlContext.createDataFrame           sqlContext.setConf
+sqlContext.createExternalTable       sqlContext.sql
+sqlContext.getConf                   sqlContext.table
+sqlContext.inferSchema               sqlContext.tableNames
+sqlContext.jsonFile                  sqlContext.tables
+sqlContext.jsonRDD                   sqlContext.uncacheTable
+sqlContext.load
+
+In [3]: sqlContext.tables
+Out[3]: <bound method SQLContext.tables of <pyspark.sql.context.SQLContext object at 0x7f70d5af9f50>>
+
+In [4]: newempRDD = sc.parallelize(['{"empid":1, "empname":"Siya", "dept":"IT", "address":{"city":"Pune","state":"Maharashtra"}, "salary":150000}','{"empid":2, "empname":"Swayam", "dept":"HR", "address":{"city":"Bangalore", "state":"Karnataka"}, "salary":130000}','{"empid":3, "empname":"Jeet", "dept":"IT", "address":{"city":"Mumbai","state":"Maharashtra"}, "salary":170000}','{"empid":4, "empname":"Priya", "dept":"HR", "address":{"city":"Chennai", "state":"Tamilnadu"}, "salary":145000}'])
+
+In [6]: newempRDD.
+Display all 103 possibilities? (y or n)
+newempRDD.aggregate
+newempRDD.aggregateByKey
+newempRDD.cache
+newempRDD.cartesian
+newempRDD.checkpoint
+newempRDD.coalesce
+newempRDD.cogroup
+newempRDD.collect
+newempRDD.collectAsMap
+newempRDD.combineByKey
+newempRDD.context
+newempRDD.count
+newempRDD.countApprox
+newempRDD.countApproxDistinct
+newempRDD.countByKey
+newempRDD.countByValue
+newempRDD.ctx
+newempRDD.distinct
+newempRDD.filter
+newempRDD.first
+newempRDD.flatMap
+newempRDD.flatMapValues
+newempRDD.fold
+newempRDD.foldByKey
+newempRDD.foreach
+newempRDD.foreachPartition
+newempRDD.fullOuterJoin
+newempRDD.getCheckpointFile
+newempRDD.getNumPartitions
+newempRDD.getStorageLevel
+newempRDD.glom
+newempRDD.groupBy
+newempRDD.groupByKey
+newempRDD.groupWith
+newempRDD.histogram
+newempRDD.id
+newempRDD.intersection
+newempRDD.isCheckpointed
+newempRDD.isEmpty
+newempRDD.is_cached
+newempRDD.is_checkpointed
+newempRDD.join
+newempRDD.keyBy
+newempRDD.keys
+newempRDD.leftOuterJoin
+newempRDD.lookup
+newempRDD.map
+newempRDD.mapPartitions
+newempRDD.mapPartitionsWithIndex
+newempRDD.mapPartitionsWithSplit
+newempRDD.mapValues
+newempRDD.max
+newempRDD.mean
+newempRDD.meanApprox
+newempRDD.min
+newempRDD.name
+newempRDD.partitionBy
+newempRDD.partitioner
+newempRDD.persist
+newempRDD.pipe
+newempRDD.randomSplit
+newempRDD.reduce
+newempRDD.reduceByKey
+newempRDD.reduceByKeyLocally
+newempRDD.repartition
+newempRDD.repartitionAndSortWithinPartitions
+newempRDD.rightOuterJoin
+newempRDD.sample
+newempRDD.sampleByKey
+newempRDD.sampleStdev
+newempRDD.sampleVariance
+newempRDD.saveAsHadoopDataset
+newempRDD.saveAsHadoopFile
+newempRDD.saveAsNewAPIHadoopDataset
+newempRDD.saveAsNewAPIHadoopFile
+newempRDD.saveAsPickleFile
+newempRDD.saveAsSequenceFile
+newempRDD.saveAsTextFile
+newempRDD.setName
+newempRDD.sortBy
+newempRDD.sortByKey
+newempRDD.stats
+newempRDD.stdev
+newempRDD.subtract
+newempRDD.subtractByKey
+newempRDD.sum
+newempRDD.sumApprox
+newempRDD.take
+newempRDD.takeOrdered
+newempRDD.takeSample
+newempRDD.toDF
+newempRDD.toDebugString
+newempRDD.toLocalIterator
+newempRDD.top
+newempRDD.treeAggregate
+newempRDD.treeReduce
+newempRDD.union
+newempRDD.unpersist
+newempRDD.values
+newempRDD.variance
+newempRDD.zip
+newempRDD.zipWithIndex
+newempRDD.zipWithUniqueId
+
+In [7]: newempRDD.count()
+Out[7]: 4
+
+In [8]: newemp = sqlContext.jsonRDD(newempRDD)
+
+In [9]: newemp.
+newemp.agg                newemp.isLocal            newemp.schema
+newemp.cache              newemp.is_cached          newemp.select
+newemp.collect            newemp.join               newemp.selectExpr
+newemp.columns            newemp.limit              newemp.show
+newemp.count              newemp.map                newemp.sort
+newemp.distinct           newemp.mapPartitions      newemp.sql_ctx
+newemp.dtypes             newemp.orderBy            newemp.subtract
+newemp.explain            newemp.persist            newemp.take
+newemp.filter             newemp.printSchema        newemp.toJSON
+newemp.first              newemp.rdd                newemp.toPandas
+newemp.flatMap            newemp.registerAsTable    newemp.unionAll
+newemp.foreach            newemp.registerTempTable  newemp.unpersist
+newemp.foreachPartition   newemp.repartition        newemp.where
+newemp.groupBy            newemp.sample             newemp.withColumn
+newemp.head               newemp.save               newemp.withColumnRenamed
+newemp.insertInto         newemp.saveAsParquetFile
+newemp.intersect          newemp.saveAsTable
+
+In [9]: newemp.show()
+address              dept empid empname salary
+[Pune,Maharashtra]   IT   1     Siya    150000
+[Bangalore,Karnat... HR   2     Swayam  130000
+[Mumbai,Maharashtra] IT   3     Jeet    170000
+[Chennai,Tamilnadu]  HR   4     Priya   145000
+

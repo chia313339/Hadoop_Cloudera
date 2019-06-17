@@ -1,0 +1,218 @@
+﻿In [2]: mydata = sc.parallelize([1,2,3,4,3,4,6])
+
+In [3]: mydata.count()
+Out[3]: 7
+
+In [4]: mydata.mean()
+Out[4]: 3.2857142857142856
+
+In [7]: mydata.collect()
+Out[7]: [1, 2, 3, 4, 3, 4, 6]
+
+In [8]: mydata.distinct().collect()
+Out[8]: [2, 4, 6, 1, 3]
+
+In [10]:  mydata.top(3)
+Out[10]: [6, 4, 4]
+
+In [11]: sc.
+sc.PACKAGE_EXTENSIONS    sc.environment           sc.setCheckpointDir
+sc.accumulator           sc.getLocalProperty      sc.setJobGroup
+sc.addFile               sc.hadoopFile            sc.setLocalProperty
+sc.addPyFile             sc.hadoopRDD             sc.setSystemProperty
+sc.appName               sc.master                sc.show_profiles
+sc.binaryFiles           sc.newAPIHadoopFile      sc.sparkHome
+sc.binaryRecords         sc.newAPIHadoopRDD       sc.sparkUser
+sc.broadcast             sc.parallelize           sc.statusTracker
+sc.cancelAllJobs         sc.pickleFile            sc.stop
+sc.cancelJobGroup        sc.profiler_collector    sc.textFile
+sc.clearFiles            sc.pythonExec            sc.union
+sc.defaultMinPartitions  sc.runJob                sc.version
+sc.defaultParallelism    sc.sequenceFile          sc.wholeTextFiles
+sc.dump_profiles         sc.serializer
+
+In [11]: mydata = sc.textFile('purplecow.txt')
+15/10/19 15:40:00 INFO MemoryStore: ensureFreeSpace(209407) called with curMem=0, maxMem=308713881
+15/10/19 15:40:00 INFO MemoryStore: Block broadcast_0 stored as values to memory (estimated size 204.5 KB, free 294.2 MB)
+
+In [12]: mydata.collect()
+Out[12]:
+[u"I've never seen a purple cow.",
+ u'I never hope to see one;',
+ u'But I can tell you, anyhow,',
+ u"I'd rather see than be one."]
+
+In [13]: mydata.flatMap(lambda line:line.split()).collect()
+Out[13]:
+[u"I've",
+ u'never',
+ u'seen',
+ u'a',
+ u'purple',
+ u'cow.',
+ u'I',
+ u'never',
+ u'hope',
+ u'to',
+ u'see',
+ u'one;',
+ u'But',
+ u'I',
+ u'can',
+ u'tell',
+ u'you,',
+ u'anyhow,',
+ u"I'd",
+ u'rather',
+ u'see',
+ u'than',
+ u'be',
+ u'one.']
+
+----------------------------------------------------------------------------------------
+In [ ]: mydata2.sortBy(lambda x: x)
+[u'But',
+ u'I',
+ u'I',
+ u"I'd",
+ u"I've",
+ u'a',
+ u'anyhow,',
+ u'be',
+ u'can',
+ u'cow.',
+ u'hope',
+ u'never',
+ u'never',
+ u'one.',
+ u'one;',
+ u'purple',
+ u'rather',
+ u'see',
+ u'see',
+ u'seen',
+ u'tell',
+ u'than',
+ u'to',
+ u'you,']
+--------------------------------------------------------------------------------------------
+In [14]: mydata4.sortBy(lambda x: x[1]).collect()  
+Out[14]:
+[(u'a', 1),
+ (u'rather', 1),
+ (u'purple', 1),
+ (u'But', 1),
+ (u'one.', 1),
+ (u'hope', 1),
+ (u'be', 1),
+ (u'you,', 1),
+ (u'cow.', 1),
+ (u"I've", 1),
+ (u'than', 1),
+ (u'to', 1),
+ (u"I'd", 1),
+ (u'can', 1),
+ (u'seen', 1),
+ (u'one;', 1),
+ (u'tell', 1),
+ (u'anyhow,', 1),
+ (u'I', 2),
+ (u'see', 2),
+ (u'never', 2)]
+
+In [15]: mydata4.sortBy(lambda x: x[1],ascending=False).collect()  
+Out[15]:
+[(u'I', 2),
+ (u'see', 2),
+ (u'never', 2),
+ (u'a', 1),
+ (u'rather', 1),
+ (u'purple', 1),
+ (u'But', 1),
+ (u'one.', 1),
+ (u'hope', 1),
+ (u'be', 1),
+ (u'you,', 1),
+ (u'cow.', 1),
+ (u"I've", 1),
+ (u'than', 1),
+ (u'to', 1),
+ (u"I'd", 1),
+ (u'can', 1),
+ (u'seen', 1),
+ (u'one;', 1),
+ (u'tell', 1),
+ (u'anyhow,', 1)]
+
+ 
+x:(key,value)
+sortBy > sortByKey
+sortBy(lambda x: x[0]) = sortByKey
+sortBy(lambda x: x[1]) 以value值排序
+\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
+[training@localhost ~]$ cat file1.json
+{
+"firstName":"Fred",
+"lastName":"Flintstone",
+"userid":"123"
+}
+[training@localhost ~]$ cat file2.json
+{
+"firstName":"Barney",
+"lastName":"Rubble",
+"userid":"234”
+}
+
+[training@localhost ~]$ hdfs dfs -mkdir jsondir
+[training@localhost ~]$ hdfs dfs -put file1.json jsondir/
+[training@localhost ~]$ hdfs dfs -put file2.json jsondir/
+[training@localhost ~]$ hdfs dfs -ls jsondir/
+Found 2 items
+-rw-rw-rw-   1 training supergroup         64 2016-06-28 20:22 jsondir/file1.json
+-rw-rw-rw-   1 training supergroup         62 2016-06-28 20:22 jsondir/file2.json
+[training@localhost ~]$ hdfs dfs -cat jsondir/file1.json
+{
+"firstName":"Fred",
+"lastName":"Flintstone",
+"userid":"123"
+}
+[training@localhost ~]$ hdfs dfs -cat jsondir/file2.json
+{
+"firstName":"Barney",
+"lastName":"Rubble",
+"userid":"234"
+}
+
+[training@localhost ~]$ pyspark
+
+In [1]: file1=sc.textFile("jsondir/file1.json")   --textfile的每一個line變成rdd的一個element
+In [2]: file1.count()
+Out[2]: 5
+
+In [3]: file1.take(2)
+Out[3]: [u'{', u'"firstName":"Fred",']
+
+In [4]: file1.collect()
+[u'{',                               --Element
+ u'"firstName":"Fred",',             --Element
+ u'"lastName":"Flintstone",',        --Element
+ u'"userid":"123"',                  --Element
+ u'}']                               --Element
+
+In [6]: filewholerdd = sc.wholeTextFiles("jsondir")
+In [7]: filewholerdd.count()
+Out[7]: 2
+In [8]: filewholerdd.collect()
+[(u'hdfs://localhost:8020/user/training/jsondir/file1.json',
+  u'{\n"firstName":"Fred",\n"lastName":"Flintstone",\n"userid":"123"\n}\n'),  --Tuple
+ (u'hdfs://localhost:8020/user/training/jsondir/file2.json',
+  u'{\n"firstName":"Barney",\n"lastName":"Rubble",\n"userid":"234"\n}\n')]    --Tuple
+
+In [9]: import json
+
+In [10]: myrdd = filewholerdd.map(lambda (fname,s): json.loads(s))
+
+In [11]: for record in myrdd.take(2):
+             print record["lastName"]
+Flintstone
+Rubble

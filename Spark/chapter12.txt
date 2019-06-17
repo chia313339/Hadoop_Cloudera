@@ -1,0 +1,70 @@
+[training@clouderaspark ~]$ ll /etc/spark/conf/
+total 40
+-rw-r--r-- 1 root root  303 Aug 26  2014 fairscheduler.xml.template
+-rw-r--r-- 1 root root  550 Feb 19  2015 log4j.properties
+-rw-r--r-- 1 root root  550 Aug 26  2014 log4j.properties.template
+-rw-r--r-- 1 root root 5308 Aug 26  2014 metrics.properties.template
+-rw-r--r-- 1 root root   80 Aug 26  2014 slaves
+-rw-r--r-- 1 root root   28 Feb 19  2015 spark-defaults.conf
+-rw-r--r-- 1 root root  340 Aug 26  2014 spark-defaults.conf.template
+-rwxr-xr-x 1 root root 4028 Feb 19  2015 spark-env.sh
+-rwxr-xr-x 1 root root 2755 Aug 26  2014 spark-env.sh.template
+
+[training@localhost ~]$ cat /etc/spark/conf/spark-defaults.conf
+spark.eventLog.enabled true
+spark.eventLog.dir hdfs:///user/spark/applicationHistory
+spark.executor.memory 400M
+[training@localhost ~]$ hdfs dfs -ls /user/spark/applicationHistory/
+Found 22 items
+-rwxrwx---   1 training spark     228777 2016-02-18 11:38 /user/spark/applicationHistory/app-20160218113813-0000
+-rwxrwx---   1 training spark      68411 2016-02-17 15:13 /user/spark/applicationHistory/local-1455687810706
+-rwxrwx---   1 training spark      72141 2016-02-17 18:00 /user/spark/applicationHistory/local-1455688037548.inprogress
+-rwxrwx---   1 training spark      46885 2016-02-17 14:17 /user/spark/applicationHistory/local-1455689753273
+-rwxrwx---   1 training spark      59302 2016-02-17 15:45 /user/spark/applicationHistory/local-1455693196730
+-rwxrwx---   1 training spark     152939 2016-02-17 15:52 /user/spark/applicationHistory/local-1455695148530
+-rwxrwx---   1 training spark     150957 2016-02-17 16:15 /user/spark/applicationHistory/local-1455696188259
+-rwxrwx---   1 training spark     227780 2016-02-17 16:36 /user/spark/applicationHistory/local-1455696942611
+-rwxrwx---   1 training spark      72902 2016-02-17 18:00 /user/spark/applicationHistory/local-1455698212970.inprogress
+-rwxrwx---   1 training spark     164108 2016-02-18 11:38 /user/spark/applicationHistory/local-1455758292692.inprogress
+-rwxrwx---   1 training spark      46886 2016-02-18 10:40 /user/spark/applicationHistory/local-1455763201848
+-rwxrwx---   1 training spark      46886 2016-02-18 10:55 /user/spark/applicationHistory/local-1455763470620
+-rwxrwx---   1 training spark      46886 2016-02-18 11:25 /user/spark/applicationHistory/local-1455765928956
+-rwxrwx---   1 training spark      46886 2016-02-18 11:34 /user/spark/applicationHistory/local-1455765978140
+-rwxrwx---   1 training spark      46875 2016-02-18 13:30 /user/spark/applicationHistory/local-1455773145243.inprogress
+-rwxrwx---   1 training spark      46869 2016-02-18 13:32 /user/spark/applicationHistory/local-1455773461265.inprogress
+-rwxrwx---   1 training spark      69537 2016-02-18 15:33 /user/spark/applicationHistory/local-1455773531981
+-rwxrwx---   1 training spark      46886 2016-02-18 15:34 /user/spark/applicationHistory/local-1455780830364
+-rwxrwx---   1 training spark      46886 2016-02-18 15:34 /user/spark/applicationHistory/local-1455780876215
+-rwxrwx---   1 training spark      91762 2016-02-18 17:16 /user/spark/applicationHistory/local-1455780901227.inprogress
+-rwxrwx---   1 training spark      46886 2016-02-19 15:33 /user/spark/applicationHistory/local-1455845873941
+-rwxrwx---   1 training spark      55226 2016-02-19 15:43 /user/spark/applicationHistory/local-1455867220703.inprogress
+
+[training@localhost ~]$ hdfs dfs -ls /user/spark/applicationHistory/local-1455845873941
+-rwxrwx---   1 training spark      46886 2016-02-19 15:33 /user/spark/applicationHistory/local-1455845873941
+[training@localhost ~]$ hdfs dfs -cat /user/spark/applicationHistory/local-1455845873941 |more
+{"Event":"SparkListenerLogStart","Spark Version":"1.3.0"}
+{"Event":"SparkListenerBlockManagerAdded","Block Manager ID":{"Executor ID":"<dr
+iver>","Host":"localhost","Port":51832},"Maximum Memory":278302556,"Timestamp":1
+455845874178}
+{"Event":"SparkListenerEnvironmentUpdate","JVM Information":{"Java Home":"/usr/j
+ava/jdk1.7.0_67/jre","Java Version":"1.7.0_67 (Oracle Corporation)","Scala Versi
+on":"version 2.10.4"},"Spark Properties":{"spark.driver.host":"localhost","spark
+.serializer.objectStreamReset":"100","spark.eventLog.enabled":"true","spark.driv
+er.port":"51504","spark.rdd.compress":"True","spark.app.name":"PySparkShell","sp
+ark.scheduler.mode":"FIFO","spark.executor.id":"<driver>","spark.master":"local[
+*]","spark.executor.memory":"400M","spark.eventLog.dir":"hdfs:///user/spark/appl
+icationHistory","spark.fileserver.uri":"http://localhost:43390","spark.tachyonSt
+ore.folderName":"spark-1ab91efc-5da5-4bbf-8fe0-d04c1f4dd4b8","spark.app.id":"loc
+al-1455845873941"},"System Properties":{"java.io.tmpdir":"/tmp","line.separator"
+:"\n","path.separator":":","sun.management.compiler":"HotSpot 64-Bit Tiered Comp
+ilers","SPARK_SUBMIT":"true","sun.cpu.endian":"little","java.specification.versi
+on":"1.7","java.vm.specification.name":"Java Virtual Machine Specification","jav
+a.vendor":"Oracle Corporation","java.vm.specification.version":"1.7","user.home"
+:"/home/training","file.encoding.pkg":"sun.io","sun.nio.ch.bugLevel":"","sun.arc
+h.data.model":"64","sun.boot.library.path":"/usr/java/jdk1.7.0_67/jre/lib/amd64"
+,"user.dir":"/home/training","java.library.path":"/usr/java/packages/lib/amd64:/
+usr/lib64:/lib64:/lib:/usr/lib","sun.cpu.isalist":"","os.arch":"amd64","java.vm.
+version":"24.65-b04","java.endorsed.dirs":"/usr/java/jdk1.7.0_67/jre/lib/endorse
+--More--
+
+	

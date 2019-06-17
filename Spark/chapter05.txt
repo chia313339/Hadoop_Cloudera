@@ -1,0 +1,214 @@
+In [1]: mydata = sc.textFile('purplecow.txt')
+
+In [2]: mydata.collect()
+Out[2]:
+[u"I've never seen a purple cow.",
+ u'I never hope to see one;',
+ u'But I can tell you, anyhow,',
+ u"I'd rather see than be one."]
+
+In [ ]: mydata.count()
+Out[ ]: 4
+ 
+ 
+                                              line.split(' ')
+In [4]: mydata2 = mydata.flatMap(lambda line: line.split())
+
+In [5]: mydata2.collect()
+Out[5]:
+[u"I've",
+ u'never',
+ u'seen',
+ u'a',
+ u'purple',
+ u'cow.',
+ u'I',
+ u'never',
+ u'hope',
+ u'to',
+ u'see',
+ u'one;',
+ u'But',
+ u'I',
+ u'can',
+ u'tell',
+ u'you,',
+ u'anyhow,',
+ u"I'd",
+ u'rather',
+ u'see',
+ u'than',
+ u'be',
+ u'one.']
+
+In [ ]: mydata2.count()
+Out[ ]: 24
+
+In [6]: mydata2
+Out[6]: PythonRDD[2] at collect at <ipython-input-5-d3aa4b92cf02>:1
+
+Pair RDD => [(key,value),(key,value),(key,value),,,,,(key,value))]
+              tuple     , tuple     , tuple     ,,,,, tuple
+             (element,element)
+			 -----------,-----------,-----------,,,,,----------
+              element     element     element         element
+In [7]: mydata3 = mydata2.map(lambda word: (word,1))
+
+In [8]: mydata3
+Out[8]: PythonRDD[3] at RDD at PythonRDD.scala:42
+
+In [9]: mydata3.collect()
+Out[9]:
+[(u"I've", 1),
+ (u'never', 1),
+ (u'seen', 1),
+ (u'a', 1),
+ (u'purple', 1),
+ (u'cow.', 1),
+ (u'I', 1),
+ (u'never', 1),
+ (u'hope', 1),
+ (u'to', 1),
+ (u'see', 1),
+ (u'one;', 1),
+ (u'But', 1),
+ (u'I', 1),
+ (u'can', 1),
+ (u'tell', 1),
+ (u'you,', 1),
+ (u'anyhow,', 1),
+ (u"I'd", 1),
+ (u'rather', 1),
+ (u'see', 1),
+ (u'than', 1),
+ (u'be', 1),
+ (u'one.', 1)]
+
+In [10]: mydata4 = mydata3.reduceByKey(lambda v1,v2: v1+v2)
+
+In [11]: mydata4.collect()
+Out[11]:
+[(u'a', 1),
+ (u'rather', 1),
+ (u'purple', 1),
+ (u'But', 1),
+ (u'I', 2),
+ (u'see', 2),
+ (u'one.', 1),
+ (u'hope', 1),
+ (u'be', 1),
+ (u'you,', 1),
+ (u'cow.', 1),
+ (u"I've", 1),
+ (u'never', 2),
+ (u'than', 1),
+ (u'to', 1),
+ (u"I'd", 1),
+ (u'can', 1),
+ (u'seen', 1),
+ (u'one;', 1),
+ (u'tell', 1),
+ (u'anyhow,', 1)]
+
+In [12]: mydata4.sortByKey().collect()
+Out[12]:
+[(u'But', 1),
+ (u'I', 2),
+ (u"I'd", 1),
+ (u"I've", 1),
+ (u'a', 1),
+ (u'anyhow,', 1),
+ (u'be', 1),
+ (u'can', 1),
+ (u'cow.', 1),
+ (u'hope', 1),
+ (u'never', 2),
+ (u'one.', 1),
+ (u'one;', 1),
+ (u'purple', 1),
+ (u'rather', 1),
+ (u'see', 2),
+ (u'seen', 1),
+ (u'tell', 1),
+ (u'than', 1),
+ (u'to', 1),
+ (u'you,', 1)]
+====================================================================================================================
+Joined RDD
+In [5]: x = sc.parallelize([("a", 1), ("b", 4)])
+
+In [6]: y = sc.parallelize([("a", 2), ("c", 8)])
+
+--Inner Join
+In [7]: sorted(x.join(y).collect())
+Out[7]: [('a', (1, 2))]
+
+--Outer Join
+In [10]: sorted(x.leftOuterJoin(y).collect())
+Out[10]: [('a', (1, 2)), ('b', (4, None))]
+
+In [11]: sorted(x.rightOuterJoin(y).collect())
+Out[11]: [('a', (1, 2)), ('c', (None, 8))]
+
+In [12]: sorted(x.fullOuterJoin(y).collect())
+Out[12]: [('a', (1, 2)), ('b', (4, None)), ('c', (None, 8))]
+
+
+=================================================================================================
+--field之間使用tab當作間隔符號
+[training@localhost ~]$ hdfs dfs -put file2.txt
+[training@localhost ~]$ hdfs dfs -cat /user/training/file2.txt
+user001 Fred Flintstone
+user090 Bugs Bunny
+user111 Harry Potter
+
+$ pyspark
+In [1]: sc.textFile("file2.txt").collect()
+Out[1]: [u'user001\tFred Flintstone', u'user090\tBugs Bunny', u'user111\tHarry Potter']
+
+count()=3
+
+In [2]: sc.textFile("file2.txt").map(lambda x: x.split(' ')).collect()
+Out[2]:
+[[u'user001\tFred', u'Flintstone'], --element[field[0],field[1]]
+ [u'user090\tBugs', u'Bunny'],
+ [u'user111\tHarry', u'Potter']]
+
+count()=3
+ 
+In [3]: sc.textFile("file2.txt").map(lambda x: x.split('\t')).collect()
+Out[3]:
+[[u'user001', u'Fred Flintstone'], --element[field[0],field[1]]
+ [u'user090', u'Bugs Bunny'],
+ [u'user111', u'Harry Potter']]
+
+count()=3
+
+In [4]: sc.textFile("file2.txt").map(lambda x: x.split('\t')).map(lambda fields: (fields[0],fields[1])).collect()
+Out[4]:
+[(u'user001', u'Fred Flintstone'),
+ (u'user090', u'Bugs Bunny'),
+ (u'user111', u'Harry Potter')]
+
+count()=3
+
+================================================================================================
+counts = sc.textFile('purplecow.txt') \
+.flatMap(lambda line: line.split()) \
+.map(lambda word: (word,1)) \
+.reduceByKey(lambda v1,v2: v1+v2)
+
+print counts.toDebugString()
+(2) PythonRDD[39] at RDD at PythonRDD.scala:42 []
+ |  MapPartitionsRDD[38] at mapPartitions at PythonRDD.scala:338 []
+ |  ShuffledRDD[37] at partitionBy at NativeMethodAccessorImpl.java:-2 []
+ +-(2) PairwiseRDD[36] at reduceByKey at <ipython-input-12-af091386e466>:1 []
+    |  PythonRDD[35] at reduceByKey at <ipython-input-12-af091386e466>:1 []
+    |  purplecow.txt MapPartitionsRDD[33] at textFile at NativeMethodAccessorImpl.java:-2 []
+    |  purplecow.txt HadoopRDD[32] at textFile at NativeMethodAccessorImpl.java:-2 []
+
+Job	
+--------------------------------------------------------------------------------------------------------	
+HadoopRDD->MapPartitionsRDD->PythonRDD->PairwiseRDD=> shuffle => ShuffedRDD->MapPartitionsRDD->PythonRDD
+----------------------------------------------------	          ---------------------------------------
+             Stage1                                                          Stage2

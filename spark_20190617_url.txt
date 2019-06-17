@@ -1,0 +1,12 @@
+https://cloud.skytap.com/vms/19ff9ae78f0fd03fac6baa5e3dd9f627/desktops    --student12
+https://cloud.skytap.com/vms/9c195bd6bf1ea20a96cfe580cadbd267/desktops    --student11
+https://cloud.skytap.com/vms/2357a6c2728995c8ced5b4e08cf731d9/desktops    --student10
+https://cloud.skytap.com/vms/8b361d00270df2af8fedf9846a8e04d0/desktops    --student09
+https://cloud.skytap.com/vms/29e13058ba058a68e5ab0271c7e1bd0b/desktops    --student08
+https://cloud.skytap.com/vms/babff18d022ce9e4f19b95d04d62476f/desktops    --student07
+https://cloud.skytap.com/vms/a26c52fa0b8582a19cc98dd7449aa118/desktops    --student06
+https://cloud.skytap.com/vms/95174f0fd6167badacf0931f99ef26b6/desktops    --student05
+https://cloud.skytap.com/vms/291b64cdf7615a395e8c95a4ecf6a445/desktops    --student04
+https://cloud.skytap.com/vms/b3481ab1896b7901232f3510faa5496c/desktops    --student03
+https://cloud.skytap.com/vms/a0e4c68fb2d5503e01b445e1e7aec440/desktops    --student02
+https://cloud.skytap.com/vms/8c381ab973bf20c83150e4a5f9d09b29/desktops    --student01

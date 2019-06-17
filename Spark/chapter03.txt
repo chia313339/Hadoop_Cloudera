@@ -1,0 +1,187 @@
+迭代(Iteration)-迴圈解
+a = 0
+for i from 1 to 3        // loop three times
+{
+  a = a + i              // add the current value of i to a
+}
+print a                  // the number 6 is printed (0 + 1; 1 + 2; 3 + 3)
+
+Interactive Shell
+ pyspark     -- python
+ spark-shell -- scala
+ 
+[training@localhost ~]$ which pyspark
+/usr/bin/pyspark
+[training@localhost ~]$ cat /usr/bin/pyspark
+#!/bin/bash
+
+# Autodetect JAVA_HOME if not defined
+. /usr/lib/bigtop-utils/bigtop-detect-javahome
+
+export PYSPARK_PYTHON=${PYSPARK_PYTHON:-python}
+
+exec /usr/lib/spark/bin/pyspark "$@"
+
+[training@clouderaspark ~]$ pyspark
+Python 2.7.8 (default, Sep 16 2015, 11:31:11)
+Type "copyright", "credits" or "license" for more information.
+
+IPython 3.2.0 -- An enhanced Interactive Python.
+
+Welcome to
+      ____              __
+     / __/__  ___ _____/ /__
+    _\ \/ _ \/ _ `/ __/  '_/
+   /__ / .__/\_,_/_/ /_/\_\   version 1.3.0
+      /_/
+
+Using Python version 2.7.8 (default, Sep 16 2015 11:31:11)
+SparkContext available as sc, HiveContext available as sqlCtx.
+
+In [1]: sc
+Out[1]: <pyspark.context.SparkContext at 0x7f09a98e8cd0>
+
+In [2]: sc.appName
+Out[2]: u'PySparkShell'
+
+\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
+[training@clouderaspark ~]$ hdfs dfs -ls /user/training
+[training@clouderaspark ~]$ vi purplecow.txt
+[training@clouderaspark ~]$ cat purplecow.txt
+I've never seen a purple cow.
+I never hope to see one;
+But I can tell you, anyhow,
+I'd rather see than be one.
+[training@clouderaspark ~]$ hdfs dfs -put /home/training/purplecow.txt /user/training/
+[training@clouderaspark ~]$ hdfs dfs -cat /user/training/purplecow.txt
+I've never seen a purple cow.
+I never hope to see one;
+But I can tell you, anyhow,
+I'd rather see than be one.
+\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
+      -- RDD      datasource(file,partitions)
+In [3]: mydata = sc.textFile('purplecow.txt',2)
+                  --textFile表示datasource為textfile,且每一行(使用\n結尾)當作一個element
+In [4]: mydata.  "按下TAB鍵"
+Display all 103 possibilities? (y or n)
+mydata.aggregate
+mydata.aggregateByKey
+mydata.cache
+mydata.cartesian
+mydata.checkpoint
+mydata.coalesce
+mydata.cogroup
+mydata.collect
+mydata.collectAsMap
+mydata.combineByKey
+mydata.context
+mydata.count
+mydata.countApprox
+mydata.countApproxDistinct
+mydata.countByKey
+mydata.countByValue
+mydata.ctx
+mydata.distinct
+mydata.filter
+mydata.first
+mydata.flatMap
+mydata.flatMapValues
+mydata.fold
+
+In [4]: mydata.toDebugString
+Out[4]: <bound method RDD.toDebugString of purplecow.txt MapPartitionsRDD[1] at textFile at NativeMethodAccessorImpl.java:-2>
+
+        RDD.ACTION
+In [5]: mydata.count()
+Out[5]: 4
+
+In [6]: mydata.collect()
+Out[6]:
+[u"I've never seen a purple cow.",           --Element 1
+ u'I never hope to see one;',                --Element 2
+ u'But I can tell you, anyhow,',             --Element 3
+ u"I'd rather see than be one."]             --Element 4
+
+--取兩個Elements傳回driver(SparkContext所在位置)
+In [7]: mydata.take(2)
+Out[7]: [u"I've never seen a purple cow.", u'I never hope to see one;']
+
+--以partition為單位,顯示內容.
+--collect()回傳結果為array,每個partition為其中一個元素
+--[[partition1],[partition2]]
+In [8]: mydata.glom().collect()
+Out[8]:
+[[u"I've never seen a purple cow.",
+  u'I never hope to see one;',
+  u'But I can tell you, anyhow,'],
+ [u"I'd rather see than be one."]]
+
+ 
+--使用python的For Loop搭配Spark RDD操作(operation)
+In [9]: for line in mydata.take(2):
+   ...:     print line
+   ...:
+I've never seen a purple cow.
+I never hope to see one;
+
+In [10]: for line in mydata.collect():
+   ....:     print line
+   ....:
+I've never seen a purple cow.
+I never hope to see one;
+But I can tell you, anyhow,
+I'd rather see than be one.
+
+--mydata.map(function)  =>將mydata的每個元素,帶入function(python/scala所宣告)進行操作一次,其結果變成新RDD的一個元素
+In [11]: mydata_uc = mydata.map(lambda line:line.upper())
+
+In [12]: mydata_uc.toD
+mydata_uc.toDF           mydata_uc.toDebugString
+
+In [12]: mydata_uc.toDebugString()
+Out[12]: '(2) PythonRDD[4] at RDD at PythonRDD.scala:42 []\n
+         purplecow.txt MapPartitionsRDD[1] at textFile at NativeMethodAccessorImpl.java:-2 []\n
+		 purplecow.txt HadoopRDD[0] at textFile at NativeMethodAccessorImpl.java:-2 []'
+
+In [13]: mydata_filt = mydata_uc.filter(lambda line:line.startswith('I'))
+
+In [14]: mydata_filt.toDebugString()
+Out[14]: PythonRDD[5] at RDD at PythonRDD.scala:42 []\n 
+         purplecow.txt MapPartitionsRDD[1] at textFile at NativeMethodAccessorImpl.java:-2 []
+		 purplecow.txt HadoopRDD[0] at textFile at NativeMethodAccessorImpl.java:-2 []'
+
+In [15]: mydata_filt.count()
+Out[15]: 3
+
+\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
+[training@localhost ~]$ which spark-shell
+/usr/bin/spark-shell
+[training@localhost ~]$ cat /usr/bin/spark-shell
+#!/bin/bash
+
+# Autodetect JAVA_HOME if not defined
+. /usr/lib/bigtop-utils/bigtop-detect-javahome
+
+exec /usr/lib/spark/bin/spark-shell "$@"
+
+[training@localhost ~]$ spark-shell
+Welcome to
+      ____              __
+     / __/__  ___ _____/ /__
+    _\ \/ _ \/ _ `/ __/  '_/
+   /___/ .__/\_,_/_/ /_/\_\   version 1.3.0
+      /_/
+
+Using Scala version 2.10.4 (Java HotSpot(TM) 64-Bit Server VM, Java 1.7.0_67)
+
+16/02/16 21:47:19 INFO SparkILoop: Created spark context..
+Spark context available as sc.
+16/02/16 21:47:20 INFO SparkILoop: Created sql context (with Hive support)..
+SQL context available as sqlContext.
+
+scala> sc
+res0: org.apache.spark.SparkContext = org.apache.spark.SparkContext@40e1afdf
+
+scala> sc.appName
+res1: String = Spark shell
+
